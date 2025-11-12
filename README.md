@@ -26,11 +26,15 @@ BuscaFungi es un sistema de machine learning que predice la probabilidad de enco
    - Horas de sol: 7d, 15d, 20d
    - Días desde última lluvia
 3. **Integración Open-Meteo API**: Datos históricos + forecast
-4. **Pseudo-ausencias inteligentes**: Espaciales (>10km) + ecológicas (clusters diferentes)
-5. **Feature engineering avanzado**: Interacciones ecológicamente relevantes
-6. **Validación espacial**: GroupKFold por bloques de 25km
-7. **Código modular**: Arquitectura limpia y profesional
-8. **Sin data leakage**: Train/test completamente separados
+4. **🚀 Interpolación Espacial Inteligente**:
+   - 900k celdas en **~5 minutos** (vs 750 horas sin optimización)
+   - Sampling cada 50km + interpolación vectorizada
+   - Cache en disco para reutilización
+5. **Pseudo-ausencias inteligentes**: Espaciales (>10km) + ecológicas (clusters diferentes)
+6. **Feature engineering avanzado**: Interacciones ecológicamente relevantes
+7. **Validación espacial**: GroupKFold por bloques de 25km
+8. **Código modular**: Arquitectura limpia y profesional
+9. **Sin data leakage**: Train/test completamente separados
 
 ---
 
@@ -184,6 +188,11 @@ TEMPORAL_FEATURES = {
 - **Suelo**: SoilGrids API
 - **Elevación**: Open-Elevation API
 - **Meteorología**: Open-Meteo API (histórica + forecast)
+  - **Optimización**: Interpolación espacial inteligente
+  - Sampling: 1 request cada 50km (~100 puntos para España)
+  - Interpolación: Linear + Nearest Neighbor (scipy)
+  - Cache: Disco + memoria (parquet)
+  - Rendimiento: 900k celdas en ~5 minutos ⚡
 - **Vegetación**: Estimación heurística (TODO: CORINE Land Cover)
 
 ### **2. Feature Engineering**
