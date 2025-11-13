@@ -361,10 +361,13 @@ class FeatureExtractor:
         logger.info(f"Extrayendo features para {len(grid_df)} celdas...")
 
         features_list = []
+        total = len(grid_df)
 
         for idx, row in grid_df.iterrows():
-            if idx % 100 == 0 and idx > 0:
-                logger.info(f"  {idx}/{len(grid_df)}...")
+            # Progress cada 50 celdas o en ciertos porcentajes
+            if idx % 50 == 0:
+                pct = 100 * idx / total
+                logger.info(f"  📍 {idx}/{total} celdas ({pct:.1f}%) - lat={row['lat']:.2f}, lon={row['lon']:.2f}")
 
             cell_features = {
                 'cell_id': row['cell_id'],

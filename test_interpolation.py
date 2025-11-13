@@ -54,9 +54,12 @@ def test_interpolation():
 
     meteo_fetcher = MeteoDataFetcher(enable_disk_cache=True)
 
-    target_date = datetime.now() - timedelta(days=7)  # Hace 1 semana (datos disponibles)
+    # IMPORTANTE: API archive tiene delay de ~5-7 días
+    # Usar fecha antigua para asegurar disponibilidad
+    target_date = datetime.now() - timedelta(days=30)  # Hace 30 días (datos disponibles)
 
     print(f"   Fecha objetivo: {target_date.date()}")
+    print(f"   (Nota: API archive tiene delay de ~5 días, por eso usamos fecha antigua)")
 
     start_time = time.time()
 
