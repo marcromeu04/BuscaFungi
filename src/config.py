@@ -16,11 +16,16 @@ REGIONS = {
     'galicia': {'lat_min': 42.0, 'lat_max': 43.5, 'lon_min': -9.0, 'lon_max': -7.0},
     'pirineos': {'lat_min': 42.3, 'lat_max': 43.0, 'lon_min': -1.5, 'lon_max': 2.0},
     'cataluna': {'lat_min': 40.5, 'lat_max': 42.9, 'lon_min': 0.2, 'lon_max': 3.3},
+    'north_spain': {'lat_min': 39.0, 'lat_max': 43.8, 'lon_min': -9.3, 'lon_max': 3.3},  # Valencia hacia el norte
     'full_spain': {'lat_min': 36.0, 'lat_max': 43.8, 'lon_min': -9.3, 'lon_max': 3.3}
 }
 
-FOCUS_REGION = 'full_spain'
+FOCUS_REGION = 'north_spain'  # Región de interés: Valencia hacia el norte
 SPAIN_BOUNDS = REGIONS[FOCUS_REGION]
+
+# ==================== INTERPOLATION CONFIGURATION ====================
+# Para features ambientales: samplear y luego interpolar
+FEATURE_SAMPLE_RESOLUTION_KM = 10.0  # Extraer features cada 10km, luego interpolar
 
 # ==================== SPECIES CONFIGURATION ====================
 SPECIES_CONFIG = {
@@ -79,7 +84,7 @@ XGBOOST_PARAMS = {
 }
 
 # ==================== CLUSTERING CONFIGURATION ====================
-GMM_N_COMPONENTS = 12  # Aumentado para capturar más nichos
+GMM_N_COMPONENTS = 15  # Nichos ecológicos (optimizar según datos)
 GMM_COVARIANCE_TYPE = 'full'
 
 # ==================== PSEUDO-ABSENCE CONFIGURATION ====================

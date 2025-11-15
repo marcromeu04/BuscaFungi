@@ -87,6 +87,9 @@ class MeteoDataFetcher:
         """
         Obtiene datos meteorológicos históricos para una ubicación
 
+        ⚠️ IMPORTANTE: API archive tiene delay de ~5-7 días
+        No usar fechas muy recientes (usar end_date <= hoy - 7 días)
+
         Parameters:
         -----------
         lat, lon : float

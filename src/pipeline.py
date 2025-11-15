@@ -127,7 +127,12 @@ class BuscaFungiPipeline:
 
         # Para observaciones: obtener meteo de su fecha específica
         if self.observations_df is not None:
-            logger.info("Obteniendo meteo para observaciones...")
+            n_obs = len(self.observations_df)
+            n_locations = self.observations_df.groupby(['lat', 'lon']).ngroups
+
+            logger.info(f"📥 Obteniendo meteo para {n_obs} observaciones")
+            logger.info(f"📍 Ubicaciones únicas: {n_locations}")
+            logger.info(f"⏱️ Esto puede tardar ~{n_locations * 2} segundos...")
 
             self.observations_df = self.meteo_fetcher.get_weather_for_observations(
                 self.observations_df
