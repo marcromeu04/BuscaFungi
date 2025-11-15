@@ -127,34 +127,50 @@ class MeteoDataFetcher:
             self.cache[cache_key] = cached_df
             return cached_df
 
-        try:
-            params = {
-                'latitude': lat,
-                'longitude': lon,
-                'start_date': start_date.strftime('%Y-%m-%d'),
-                'end_date': end_date.strftime('%Y-%m-%d'),
-                'daily': ','.join(variables),
-                'timezone': 'Europe/Madrid'
-            }
+        # Retry con exponential backoff
+        import time
+        max_retries = 3
 
-            response = requests.get(self.archive_url, params=params, timeout=30)
-            response.raise_for_status()
-            data = response.json()
+        params = {
+            'latitude': lat,
+            'longitude': lon,
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d'),
+            'daily': ','.join(variables),
+            'timezone': 'Europe/Madrid'
+        }
 
-            # Convertir a DataFrame
-            df = pd.DataFrame(data['daily'])
-            df['time'] = pd.to_datetime(df['time'])
-            df = df.rename(columns={'time': 'date'})
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(self.archive_url, params=params, timeout=60)
+                response.raise_for_status()
+                data = response.json()
 
-            # Cache en memoria y disco
-            self.cache[cache_key] = df
-            self._save_to_disk_cache(cache_key, df)
+                # Convertir a DataFrame
+                df = pd.DataFrame(data['daily'])
+                df['time'] = pd.to_datetime(df['time'])
+                df = df.rename(columns={'time': 'date'})
 
-            return df
+                # Cache en memoria y disco
+                self.cache[cache_key] = df
+                self._save_to_disk_cache(cache_key, df)
 
-        except Exception as e:
-            logger.error(f"Error fetching historical weather: {e}")
-            return None
+                return df
+
+            except requests.exceptions.Timeout as e:
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                if attempt < max_retries - 1:
+                    logger.warning(f"⏱️ Timeout intento {attempt + 1}/{max_retries} ({lat:.2f}, {lon:.2f}). Reintentando en {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"❌ Timeout después de {max_retries} intentos ({lat:.2f}, {lon:.2f})")
+                    return None
+
+            except Exception as e:
+                logger.error(f"❌ Error fetching historical weather: {e}")
+                return None
+
+        return None
 
     def fetch_forecast_weather(
         self,
@@ -184,28 +200,44 @@ class MeteoDataFetcher:
             'sunshine_duration'
         ]
 
-        try:
-            params = {
-                'latitude': lat,
-                'longitude': lon,
-                'daily': ','.join(variables),
-                'forecast_days': min(days, 16),
-                'timezone': 'Europe/Madrid'
-            }
+        # Retry con exponential backoff
+        import time
+        max_retries = 3
 
-            response = requests.get(self.forecast_url, params=params, timeout=30)
-            response.raise_for_status()
-            data = response.json()
+        params = {
+            'latitude': lat,
+            'longitude': lon,
+            'daily': ','.join(variables),
+            'forecast_days': min(days, 16),
+            'timezone': 'Europe/Madrid'
+        }
 
-            df = pd.DataFrame(data['daily'])
-            df['time'] = pd.to_datetime(df['time'])
-            df = df.rename(columns={'time': 'date'})
+        for attempt in range(max_retries):
+            try:
+                response = requests.get(self.forecast_url, params=params, timeout=60)
+                response.raise_for_status()
+                data = response.json()
 
-            return df
+                df = pd.DataFrame(data['daily'])
+                df['time'] = pd.to_datetime(df['time'])
+                df = df.rename(columns={'time': 'date'})
 
-        except Exception as e:
-            logger.error(f"Error fetching forecast: {e}")
-            return None
+                return df
+
+            except requests.exceptions.Timeout as e:
+                wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                if attempt < max_retries - 1:
+                    logger.warning(f"⏱️ Timeout intento {attempt + 1}/{max_retries} ({lat:.2f}, {lon:.2f}). Reintentando en {wait_time}s...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"❌ Timeout después de {max_retries} intentos ({lat:.2f}, {lon:.2f})")
+                    return None
+
+            except Exception as e:
+                logger.error(f"❌ Error fetching forecast: {e}")
+                return None
+
+        return None
 
     def calculate_temporal_features(
         self,
