@@ -54,12 +54,12 @@ def test_interpolation():
 
     meteo_fetcher = MeteoDataFetcher(enable_disk_cache=True)
 
-    # IMPORTANTE: API archive necesita fechas bien antiguas
-    # Usar fecha de hace 90+ días para asegurar disponibilidad
-    target_date = datetime(2024, 8, 15)  # Agosto 2024 (datos garantizados)
+    # IMPORTANTE: API archive gratuita funciona mejor con fechas antiguas
+    # Usar fecha de hace 2+ años para evitar limits de plan comercial
+    target_date = datetime(2022, 10, 15)  # Octubre 2022 (API gratuita)
 
     print(f"   Fecha objetivo: {target_date.date()}")
-    print(f"   (Nota: Usando fecha histórica garantizada - Aug 2024)")
+    print(f"   (Nota: Usando fecha antigua para API gratuita - Oct 2022)")
 
     start_time = time.time()
 

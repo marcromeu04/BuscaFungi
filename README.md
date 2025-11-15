@@ -4,6 +4,9 @@
 
 BuscaFungi es un sistema de machine learning que predice la probabilidad de encontrar hongos comestibles en cualquier ubicación de España, para cualquier fecha.
 
+> ⚠️ **IMPORTANTE**: Para usar datos meteorológicos históricos, necesitas una API key gratuita de Open-Meteo.
+> 📖 **Ver [API_KEY_SETUP.md](API_KEY_SETUP.md)** para instrucciones de configuración (2 minutos)
+
 ## 🎯 ¿Qué hace?
 
 - **Predicción espacial**: Mapa de probabilidades de presencia de hongos en grid de 1km
