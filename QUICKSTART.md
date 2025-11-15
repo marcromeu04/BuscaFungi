@@ -194,25 +194,57 @@ print(f"✅ Features: {len(features.columns)} columnas")
 
 ---
 
-## 📚 Siguiente Paso
+## 📚 Workflow Completo (v2)
 
-Una vez entrenado:
+### Setup (1 vez)
 
-```python
-from src.pipeline import BuscaFungiPipeline
-from datetime import datetime
+```bash
+# 1. Crear grid + clustering (~25 min)
+python setup_grid_clustering.py
+```
 
-pipeline = BuscaFungiPipeline()
-# ... cargar modelos
+Genera:
+- `outputs/grid_clustered.parquet` - Grid con 15 clusters ecológicos
+- `outputs/gmm_model.joblib` - Modelo de clustering
+- `outputs/sample_features.parquet` - Features interpoladas
 
-# Predecir para mañana
-predictions = pipeline.predict_for_date(
-    target_date=datetime.now() + timedelta(days=1),
-    species='Boletus edulis',
-    use_forecast=True
-)
+### Entrenamiento
 
-predictions.to_csv('predicciones_mañana.csv')
+```bash
+# 2. Entrenar modelos (~15 min)
+python train_v2.py
+```
+
+Genera:
+- `outputs/models/Boletus_edulis_v2.joblib`
+- `outputs/models/Lactarius_deliciosus_v2.joblib`
+- `outputs/models/Morchella_esculenta_v2.joblib`
+- `outputs/cluster_features.joblib`
+
+### Predicción
+
+```bash
+# 3a. Predecir para una fecha histórica
+python predict_v2.py --species "Boletus edulis" --date 2024-09-15
+
+# 3b. Predecir para hoy
+python predict_v2.py --species "Lactarius deliciosus"
+
+# 3c. Predecir para el futuro (usa forecast)
+python predict_v2.py --species "Morchella esculenta" --date 2025-12-01 --use-forecast
+```
+
+Genera:
+- `outputs/predictions/Boletus_edulis_20240915.csv` - Todas las celdas
+- `outputs/predictions/Boletus_edulis_20240915_high_prob.csv` - Solo P > 0.3
+
+### Temporal Slider
+
+```bash
+# Predecir para diferentes fechas
+for date in 2024-09-{01..30}; do
+    python predict_v2.py --species "Boletus edulis" --date $date
+done
 ```
 
 **Ver README.md completo para más detalles**
