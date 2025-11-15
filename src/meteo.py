@@ -29,10 +29,11 @@ class MeteoDataFetcher:
     - Interpolación espacial para grids grandes
     """
 
-    def __init__(self, enable_disk_cache: bool = True):
+    def __init__(self, enable_disk_cache: bool = True, api_key: str = None):
         self.archive_url = config.METEO_API_URL
         self.forecast_url = config.METEO_FORECAST_URL
         self.cache = {}  # Cache en memoria
+        self.api_key = api_key or config.METEO_API_KEY  # From config or env
 
         # Cache en disco
         self.enable_disk_cache = enable_disk_cache
@@ -140,6 +141,10 @@ class MeteoDataFetcher:
             'timezone': 'Europe/Madrid'
         }
 
+        # Añadir API key si está disponible
+        if self.api_key:
+            params['apikey'] = self.api_key
+
         for attempt in range(max_retries):
             try:
                 response = requests.get(self.archive_url, params=params, timeout=60)
@@ -211,6 +216,10 @@ class MeteoDataFetcher:
             'forecast_days': min(days, 16),
             'timezone': 'Europe/Madrid'
         }
+
+        # Añadir API key si está disponible
+        if self.api_key:
+            params['apikey'] = self.api_key
 
         for attempt in range(max_retries):
             try:
@@ -461,6 +470,8 @@ class MeteoDataFetcher:
         meteo_samples = []
         sample_count = 0
 
+        import time
+
         for lat in lat_samples:
             for lon in lon_samples:
                 sample_count += 1
@@ -482,6 +493,12 @@ class MeteoDataFetcher:
                     meteo_features['lat'] = lat
                     meteo_features['lon'] = lon
                     meteo_samples.append(meteo_features)
+
+                # Delay para evitar rate limiting (API gratis de Open-Meteo)
+                # Permite ~300 requests/hora = 5/min = 1 cada 12s para ser conservadores
+                # Usamos 0.3s para balance entre velocidad y límites
+                if sample_count < n_samples:  # No esperar después del último
+                    time.sleep(0.3)
 
         if len(meteo_samples) == 0:
             logger.error("❌ No se pudo obtener datos meteorológicos")

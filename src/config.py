@@ -109,7 +109,12 @@ SPATIAL_BLOCK_SIZE_DEG = 0.25  # ~25km blocks para validación espacial
 N_SPATIAL_FOLDS = 5
 
 # ==================== API CONFIGURATION ====================
-# Open-Meteo (no requiere API key)
+# Open-Meteo
+# IMPORTANTE: La API archive puede requerir API key en algunos entornos
+# Registrate gratis en: https://open-meteo.com/en/pricing (Free tier: 10,000 requests/día)
+# Luego configura: export OPENMETEO_API_KEY="tu_clave"
+import os
+METEO_API_KEY = os.getenv('OPENMETEO_API_KEY', None)  # None = modo gratuito limitado
 METEO_API_URL = "https://archive-api.open-meteo.com/v1/archive"
 METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
