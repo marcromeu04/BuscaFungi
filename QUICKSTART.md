@@ -238,6 +238,25 @@ Genera:
 - `outputs/predictions/Boletus_edulis_20240915.csv` - Todas las celdas
 - `outputs/predictions/Boletus_edulis_20240915_high_prob.csv` - Solo P > 0.3
 
+### Visualización
+
+```bash
+# 4a. Pipeline completo: Predecir + Visualizar automáticamente
+python run_prediction_with_map.py --species "Boletus edulis" --date 2024-09-15
+
+# 4b. Solo visualizar predicciones existentes
+python visualize_predictions.py --species "Boletus edulis" --date 2024-09-15
+
+# 4c. Visualizar desde archivo CSV
+python visualize_predictions.py --file outputs/predictions/Boletus_edulis_20240915.csv
+```
+
+Se abre automáticamente en tu navegador con:
+- 🗺️ Mapa interactivo con heatmap de probabilidades
+- 📍 Top 20 ubicaciones marcadas
+- 🎨 Capas configurables (terreno, satélite, etc.)
+- 📊 Estadísticas y leyenda
+
 ### Temporal Slider
 
 ```bash
