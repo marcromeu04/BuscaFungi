@@ -63,10 +63,12 @@ BuscaFungi/
 │   └── cache/                 # Cache de APIs
 │
 ├── outputs/                   # Modelos y predicciones
-├── models/                    # Modelos entrenados
+├── archive/                   # Código legacy (notebooks viejos)
 │
-├── train.py                   # Script de entrenamiento
-├── predict.py                 # Script de predicción
+├── setup_grid_clustering.py   # Paso 1: Preprocesamiento del grid
+├── train_v2.py                # Paso 2: Entrenamiento de modelos
+├── predict_v2.py              # Paso 3: Predicciones
+├── test_interpolation.py      # Test de interpolación
 ├── requirements.txt           # Dependencias
 └── README.md                  # Este archivo
 ```
@@ -101,54 +103,86 @@ pip install -r requirements.txt
 
 ## 🎓 Uso
 
-### **Opción 1: Entrenamiento Completo**
+### **Workflow v2.0 (3 pasos)**
+
+#### **Paso 1: Preprocesar Grid (ejecutar una vez)**
 
 ```bash
-python train.py
+python setup_grid_clustering.py
 ```
 
 Esto:
-1. Descarga observaciones de GBIF
-2. Crea grid de 1km (o muestra si `USE_SAMPLE=True`)
-3. Extrae features ambientales
-4. Obtiene datos meteorológicos históricos
-5. Entrena modelos SDM para cada especie
-6. Guarda modelos en `outputs/`
+- Crea grid de 1km para toda España (~900k celdas)
+- Extrae features ambientales (suelo, elevación, topografía)
+- Obtiene datos meteorológicos con interpolación espacial optimizada
+- Realiza clustering ecológico (GMM, 15 componentes)
+- Guarda: `outputs/grid_clustered.parquet`, `outputs/gmm_model.joblib`
+- Tiempo: ~30 minutos (se ejecuta solo una vez)
 
-### **Opción 2: Predicción para una fecha**
+#### **Paso 2: Entrenar Modelos**
 
-```python
-from src.pipeline import BuscaFungiPipeline
-from datetime import datetime
-
-# Cargar pipeline entrenado
-pipeline = BuscaFungiPipeline()
-pipeline.load_pipeline('outputs/')
-
-# Predecir para hoy
-predictions = pipeline.predict_for_date(
-    target_date=datetime.now(),
-    species='Boletus edulis'
-)
-
-# Guardar
-predictions.to_csv('predictions_today.csv', index=False)
+```bash
+python train_v2.py
 ```
 
-### **Opción 3: Uso como librería**
+Esto:
+- Descarga observaciones de GBIF para las 3 especies
+- Carga el grid preprocesado
+- Añade features meteorológicas temporales (30d windows)
+- Genera pseudo-ausencias inteligentes (espaciales + ecológicas)
+- Entrena modelos XGBoost con validación espacial
+- Guarda modelos en: `outputs/models/*_v2.joblib`
+- Tiempo: ~15 minutos
+
+#### **Paso 3: Hacer Predicciones**
+
+```bash
+# Predicción para fecha específica (ej: ayer)
+python predict_v2.py --species "Boletus edulis" --date 2024-11-18
+
+# Usar forecast meteorológico (próximos 7 días)
+python predict_v2.py --species "Lactarius deliciosus" --date 2024-11-25 --use-forecast
+
+# Todas las especies para hoy
+python predict_v2.py
+```
+
+Esto:
+- Carga grid + modelos entrenados
+- Obtiene datos meteorológicos para la fecha objetivo
+- Predice probabilidades para todas las celdas
+- Guarda: `outputs/predictions/{species}_{date}.csv`
+- Tiempo: ~5 minutos
+
+### **Uso Programático (Python)**
 
 ```python
-from src import BuscaFungiPipeline, config
+from src.grid import create_full_grid
+from src.meteo import add_meteorological_features
+from src.sdm import train_sdm_model
+import joblib
+from datetime import datetime
 
-# Configurar
-config.FOCUS_REGION = 'galicia'
-config.GRID_RESOLUTION_KM = 1.0
-config.USE_SAMPLE = False
+# Cargar grid preprocesado
+grid = joblib.load('outputs/grid_clustered.parquet')
 
-# Pipeline
-pipeline = BuscaFungiPipeline()
+# Cargar modelo
+model = joblib.load('outputs/models/Boletus_edulis_v2.joblib')
 
-# ... (ver ejemplos en notebooks/)
+# Añadir meteo para fecha específica
+grid_with_meteo = add_meteorological_features(
+    grid,
+    target_date=datetime(2024, 11, 18),
+    use_forecast=False
+)
+
+# Predecir
+predictions = model.predict_proba(grid_with_meteo)[:, 1]
+grid_with_meteo['probability'] = predictions
+
+# Filtrar zonas con alta probabilidad (>60%)
+hotspots = grid_with_meteo[grid_with_meteo['probability'] > 0.6]
+print(f"Zonas prometedoras: {len(hotspots)} celdas")
 ```
 
 ---
