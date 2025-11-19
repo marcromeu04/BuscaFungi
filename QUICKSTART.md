@@ -21,38 +21,44 @@ python test_interpolation.py
 - ✅ Muestra stats de precipitación y temperatura
 - ✅ Genera `test_interpolation_output.csv`
 
-### 3. Entrenamiento con Muestra
+### 3. Workflow v2.0 - Pipeline Completo
+
+#### Paso 1: Setup Grid (ejecutar 1 vez)
 
 ```bash
-# Editar src/config.py primero:
-# USE_SAMPLE = True
-# SAMPLE_SIZE = 1000
-
-python train.py
+python setup_grid_clustering.py
 ```
 
-**Tiempo estimado:** ~5-10 minutos
-- Grid: 1000 celdas
-- Descarga GBIF: ~2 min
-- Features ambientales: ~3 min
-- Features meteorológicas: ~2 min
-- Entrenamiento: ~1 min
+**Tiempo estimado:** ~30 minutos
+- Crea grid completo (900k celdas)
+- Extrae features ambientales con interpolación
+- Realiza clustering ecológico (GMM, 15 componentes)
+- Guarda: `outputs/grid_clustered.parquet`
 
-### 4. Entrenamiento Completo
+#### Paso 2: Entrenar Modelos
 
 ```bash
-# Editar src/config.py:
-# USE_SAMPLE = False
-
-python train.py
+python train_v2.py
 ```
 
-**Tiempo estimado:** ~1-2 horas
-- Grid: 500,000 celdas
-- Features ambientales: ~30 min (con logging cada 50 celdas)
-- Features meteorológicas: ~5 min (interpolación)
-- Clustering: ~5 min
-- Entrenamiento: ~10 min
+**Tiempo estimado:** ~15 minutos
+- Descarga observaciones GBIF
+- Añade features meteorológicas (30d windows)
+- Genera pseudo-ausencias inteligentes
+- Entrena modelos XGBoost
+- Guarda: `outputs/models/*_v2.joblib`
+
+#### Paso 3: Predicciones
+
+```bash
+# Para una fecha específica
+python predict_v2.py --species "Boletus edulis" --date 2024-11-18
+
+# Para el futuro (con forecast)
+python predict_v2.py --species "Lactarius deliciosus" --date 2024-11-25 --use-forecast
+```
+
+**Tiempo estimado:** ~5 minutos por predicción
 
 ---
 
@@ -71,19 +77,20 @@ target_date = datetime.now() - timedelta(days=2)  # Muy reciente
 target_date = datetime.now() - timedelta(days=30)  # Datos disponibles
 ```
 
-### Train.py tarda mucho en "estudiar parcelas"
+### setup_grid_clustering.py tarda mucho
 
-**Causa:** Extracción de features ambientales (API calls)
+**Causa:** Extracción de features ambientales con APIs + interpolación
 
 **Qué ver:**
-- Logging cada 50 celdas: `📍 50/1000 celdas (5.0%)`
+- Logging de progreso: `📍 50/250 samples (20.0%)`
+- Interpolación: `🔄 Interpolando a 900k celdas...`
 - Si no ves nada: revisar logging level
 
 **Para ver progress:**
 ```bash
 # Asegurar logging visible
 export PYTHONUNBUFFERED=1
-python train.py 2>&1 | tee train.log
+python setup_grid_clustering.py 2>&1 | tee setup.log
 ```
 
 ### No sé si está usando interpolación
@@ -140,8 +147,9 @@ LOG_LEVEL = 'DEBUG'  # en vez de 'INFO'
 import sys
 sys.path.insert(0, 'src')
 
-from src import BuscaFungiPipeline
 from src.meteo import MeteoDataFetcher
+from src.grid import GridManager
+from src.sdm import MushroomSDM
 
 print("✅ Imports OK")
 ```
@@ -151,21 +159,24 @@ print("✅ Imports OK")
 ```python
 from src.grid import GridManager
 from src.features import FeatureExtractor
-from datetime import datetime
+from datetime import datetime, timedelta
+import pandas as pd
 
-# 1. Grid
+# 1. Grid básico
 grid_mgr = GridManager()
-grid = grid_mgr.create_grid(use_sample=True, sample_size=100)
+grid = grid_mgr.create_grid()
 print(f"✅ Grid: {len(grid)} celdas")
 
-# 2. Features (sin meteo)
+# 2. Features ambientales para muestra
 feat_ext = FeatureExtractor()
-features = feat_ext.extract_features_for_grid(
-    grid,
-    date=datetime.now() - timedelta(days=30),
-    add_interactions=False
-)
-print(f"✅ Features: {len(features.columns)} columnas")
+sample = grid.head(10)  # Solo 10 celdas para test
+features = []
+for _, row in sample.iterrows():
+    env_feats = feat_ext.extract_environmental_features(row['lat'], row['lon'])
+    features.append({**row.to_dict(), **env_feats})
+
+features_df = pd.DataFrame(features)
+print(f"✅ Features: {len(features_df.columns)} columnas")
 ```
 
 ---
